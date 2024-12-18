@@ -55,7 +55,13 @@ func (d *Dict) JSON(b *strings.Builder) {
 		} else {
 			b.WriteByte(':')
 		}
-		x.JSON(b)
+		if _, ok := x.(Int); ok {
+			b.WriteByte('"')
+			x.JSON(b)
+			b.WriteByte('"')
+		} else {
+			x.JSON(b)
+		}
 	}
 	b.WriteByte('}')
 }
