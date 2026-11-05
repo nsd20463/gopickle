@@ -55,12 +55,18 @@ func (d *Dict) JSON(b *strings.Builder) {
 		} else {
 			b.WriteByte(':')
 		}
-		if _, ok := x.(Int); ok {
+		quoted := false
+		if i&1 == 0 {
+			switch x.(type) {
+			case Int, *Long, Float:
+				// JSON requires quotes around non-string keys
+				b.WriteByte('"')
+				quoted = true
+			}
+		}
+		x.JSON(b)
+		if quoted {
 			b.WriteByte('"')
-			x.JSON(b)
-			b.WriteByte('"')
-		} else {
-			x.JSON(b)
 		}
 	}
 	b.WriteByte('}')
