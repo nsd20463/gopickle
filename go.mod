@@ -5,5 +5,3 @@
 module github.com/mistsys/gopickle2json
 
 go 1.19
-
-require github.com/nsd20463/bytesconv v1.0.1

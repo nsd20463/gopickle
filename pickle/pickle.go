@@ -15,7 +15,6 @@ import (
 	"unsafe"
 
 	"github.com/mistsys/gopickle2json/types"
-	"github.com/nsd20463/bytesconv"
 )
 
 const HighestProtocol byte = 5
@@ -498,7 +497,7 @@ func loadLong(u *Unpickler) error {
 		u.append(types.NewInt(int64(i)))
 		return nil
 	}
-	if ne, isNe := err.(*bytesconv.NumError); isNe && ne.Err == bytesconv.ErrRange {
+	if ne, isNe := err.(*strconv.NumError); isNe && ne.Err == strconv.ErrRange {
 		bi, ok := new(big.Int).SetString(sub, 10)
 		if !ok {
 			return fmt.Errorf("invalid long data")
