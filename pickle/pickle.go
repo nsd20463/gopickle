@@ -5,13 +5,16 @@
 package pickle
 
 import (
+	"bytes"
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
 	"math"
 	"math/big"
 	"strconv"
+	"unicode/utf8"
 	"unsafe"
 
 	"github.com/mistsys/gopickle2json/types"
@@ -658,8 +661,97 @@ func loadUnicode(u *Unpickler) error {
 	if err != nil {
 		return err
 	}
-	u.append(u.NewString(line))
+	str, err := decode_raw_unicode_escaped(line)
+	if err != nil {
+		return err
+	}
+	u.append(u.NewString(str))
 	return nil
+}
+
+// convert raw-unicode-escaped encoding into UTF-8
+// note I can't find a canned function in go stdlib to do this, nor in golang.org/x/text
+func decode_raw_unicode_escaped(in []byte) ([]byte, error) {
+	// python's raw-unicide-escaped is an interesting encoding.
+	// All 1-byte values are encoded as-is except for \, which is escaped as \\. This includes 128-255.
+	// All 2 and 4-byte unicode values are escaped as \u#### or \U########.
+	// And \n also becomes \u000a because \n is the string terminator in pickle.
+
+	// quick check: if all bytes are <= 127 and not \ then no conversion is needed
+	quick := true
+	for _, x := range in {
+		if x == '\\' || x > 127 {
+			quick = false
+			break
+		}
+	}
+	if quick {
+		return in, nil
+	}
+
+	inin := in // save for errors
+
+	// estimate how large the output will be (doesn't have to be perfect)
+	num_u := bytes.Count(in, []byte("\\u"))
+	num_U := bytes.Count(in, []byte("\\U"))
+	num_bs := bytes.Count(in, []byte("\\\\"))
+	guess := len(in) - num_bs - 2*num_u - 2*num_U
+	out := make([]byte, 0, guess)
+	for len(in) > 0 {
+		c := in[0]
+		if c != '\\' {
+			out = utf8.AppendRune(out, rune(c))
+			in = in[1:]
+			continue
+		}
+
+		if len(in) < 2 {
+			return out, fmt.Errorf(`unbalanced \ in raw-unicode-escaped %q`, inin)
+		}
+
+		// in[0] is known to be \
+		c = in[1]
+		in = in[2:]
+		switch c {
+		case '\\':
+			out = utf8.AppendRune(out, rune(c))
+
+		case 'u':
+			if len(in) < 4 {
+				return out, fmt.Errorf(`truncated \u 2-byte hex code in raw-unicode-escaped %q`, inin)
+			}
+			var v [2]byte
+			if _, err := hex.Decode(v[:], in[:4]); err != nil {
+				return out, fmt.Errorf(`invalid \u 2-byte hex code in raw-unicode-escaped %q: %w`, inin, err)
+			}
+			r := rune(binary.BigEndian.Uint16(v[:]))
+			if !utf8.ValidRune(r) {
+				return out, fmt.Errorf(`non-UTF-8 \u 2-byte hex code 0x%x in raw-unicode-escaped %q`, uint(r), inin)
+			}
+			out = utf8.AppendRune(out, r)
+			in = in[4:]
+
+		case 'U':
+			if len(in) < 8 {
+				return out, fmt.Errorf(`truncated \U 4-byte hex code in raw-unicode-escaped %q`, inin)
+			}
+			var v [4]byte
+			if _, err := hex.Decode(v[:], in[:8]); err != nil {
+				return out, fmt.Errorf(`invalid \U 4-byte hex code in raw-unicode-escaped %q: %w`, inin, err)
+			}
+			r := rune(binary.BigEndian.Uint32(v[:]))
+			if !utf8.ValidRune(r) {
+				return out, fmt.Errorf(`non-UTF-8 \U 4-byte hex code 0x%x in raw-unicode-escaped %q`, uint(r), inin)
+			}
+			out = utf8.AppendRune(out, r)
+			in = in[8:]
+
+		default:
+			return out, fmt.Errorf(`unknown escape code \%q in raw-unicode-escaped %q`, string(c), inin)
+		}
+	}
+	println(guess, len(out))
+	return out, nil
 }
 
 // push Unicode string; counted UTF-8 string argument
