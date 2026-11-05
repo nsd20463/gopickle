@@ -19,7 +19,14 @@ func NewByteArray(bytes []byte) ByteArray {
 }
 
 func (a ByteArray) JSON(b *strings.Builder) {
-	w := base64.NewEncoder(base64.StdEncoding, b)
-	w.Write([]byte(a))
-	w.Close()
+	b.WriteByte('"')
+	if len(a) < 1024*3/4 { // encoder's built-in buffer is 1024 bytes
+		b.Write(base64.StdEncoding.AppendEncode(nil, []byte(a)))
+	} else {
+		// stream the larger values
+		w := base64.NewEncoder(base64.StdEncoding, b)
+		w.Write([]byte(a))
+		w.Close()
+	}
+	b.WriteByte('"')
 }
