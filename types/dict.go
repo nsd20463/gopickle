@@ -48,21 +48,24 @@ func (d *Dict) SetMany(kv []Object) {
 func (d *Dict) JSON(b *strings.Builder) {
 	b.WriteByte('{')
 	for i, x := range *d {
+		quoted := false
 		if i&1 == 0 {
 			if i != 0 {
 				b.WriteByte(',')
 			}
-		} else {
-			b.WriteByte(':')
-		}
-		quoted := false
-		if i&1 == 0 {
-			switch x.(type) {
-			case Int, *Long, Float:
+			switch xx := x.(type) {
+			case Int, *Long:
 				// JSON requires quotes around non-string keys
 				b.WriteByte('"')
 				quoted = true
+			case Float:
+				if !xx.NeedsQuotes() {
+					b.WriteByte('"')
+					quoted = true
+				} // else it's going to be quoted already
 			}
+		} else {
+			b.WriteByte(':')
 		}
 		x.JSON(b)
 		if quoted {
