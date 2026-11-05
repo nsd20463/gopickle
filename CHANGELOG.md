@@ -6,7 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.3.3] - 2026-10-05
+## [0.3.4] - 2026-11-05
+### Changed
+- Support Nan and Inf
+- Support pickle v0 unicode strings
+- Fix JSON encoding of byte arrays
+
+## [0.3.3] - 2026-11-05
 ### Changed
 - Backport of fix for malformed, odd-length dict unpickling.
 - Support numeric dict keys (Thanks @Dadadah)
