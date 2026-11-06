@@ -128,7 +128,7 @@ func (u *Unpickler) findClass(module, name string) (types.Object, error) {
 	if u.FindClass != nil {
 		return u.FindClass(module, name)
 	}
-	panic(fmt.Sprintf("can't unpickle type %s.%s", string(module), string(name)))
+	return nil, fmt.Errorf("don't know how to unpickle type %s.%s", module, name)
 }
 
 func (u *Unpickler) read(n int) ([]byte, error) {
