@@ -41,7 +41,6 @@ func (*OrderedDictClass) JSON(*strings.Builder) {
 type OrderedDict Dict
 
 var _ DictSetter = &OrderedDict{}
-var _ PyDictSettable = &OrderedDict{}
 
 // NewOrderedDict makes and returns a new empty OrderedDict.
 func NewOrderedDict() *OrderedDict {
@@ -57,13 +56,6 @@ func (o *OrderedDict) Set(k, v Object) {
 
 func (o *OrderedDict) SetMany(kv []Object) {
 	(*Dict)(o).SetMany(kv)
-}
-
-// PyDictSet mimics the setting of a key/value pair on Python "__dict__"
-// attribute of the OrderedDict.
-func (o *OrderedDict) PyDictSet(key, value Object) error {
-	(*Dict)(o).Set(key, value)
-	return nil
 }
 
 func (o *OrderedDict) JSON(b *strings.Builder) {
