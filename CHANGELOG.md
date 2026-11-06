@@ -6,6 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-11-06
+### Changed
+- unknown pickled classes result in an error, not a panic.
+### Removed
+- types.GenericObjectClass and GenericObject are removed. They aren't useable
+  (all calls end in panic) so nothing should have been using them to begin with.
+
+
 ## [0.4.0] - 2026-11-06
 ### Changed
 - Restore support for PyDictSettable and PyAttrSettable (should some custom type

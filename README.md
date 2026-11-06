@@ -12,6 +12,10 @@ Some limitations have to apply when JSON is the output:
     from self.__dict__ nor from self.setattr().
   * python can have internal references (ie. list element is the list itself)
     but JSON cannot.
+  * no GenericObject is used for unknown picked object classes. If your pickled
+    data contains classes outside of the supported classes, you need to handle
+    then with a custom Unpickler.FindClass function, and implement the class's
+    PyNew() and the instance's JSON() methods.
 
 And some assumptions to improve performance:
   * pickled dictionaries and sets don't contain duplicate keys. We aren't
