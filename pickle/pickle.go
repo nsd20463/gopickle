@@ -1470,8 +1470,9 @@ func loadBuild(u *Unpickler) error {
 	if err != nil {
 		return err
 	}
-	if obj, ok := inst.(types.PyStateSettable); ok {
-		return obj.PySetState(state)
+
+	if settable, ok := inst.(types.PyStateSettable); ok {
+		return settable.PySetState(state)
 	}
 
 	var slotState types.Object
@@ -1480,44 +1481,30 @@ func loadBuild(u *Unpickler) error {
 		slotState = tuple.Get(1)
 	}
 
-	if stateDict, ok := state.(*types.Dict); ok {
-		_ = stateDict
-		panic("stateDict not implemented")
-		/*
-			instPds, instPdsOk := inst.(types.PyDictSettable)
-			if !instPdsOk {
-				return fmt.Errorf("BUILD requires a PyDictSettable instance: %#v", inst)
-			}
-			for _, entry := range *stateDict {
-				err := instPds.PyDictSet(entry.Key, entry.Value)
+	if dict, ok := state.(*types.Dict); ok {
+		if settable, ok := inst.(types.PyDictSettable); ok {
+			for key, val := range dict.Range() {
+				err := settable.PyDictSet(key, val)
 				if err != nil {
 					return err
 				}
 			}
-		*/
+		}
 	}
 
-	if slotStateDict, ok := slotState.(*types.Dict); ok {
-		_ = slotStateDict
-		panic("slotStateDict not implemented")
-		/*
-			/*
-				instSa, instOk := inst.(types.PyAttrSettable)
-				if !instOk {
-					return fmt.Errorf(
-						"BUILD requires a PyAttrSettable instance: %#v", inst)
+	if dict, ok := slotState.(*types.Dict); ok {
+		if settable, ok := inst.(types.PyAttrSettable); ok {
+			for key, val := range dict.Range() {
+				key, ok := key.(types.String)
+				if !ok {
+					return fmt.Errorf("BUILD requires string slot state keys")
 				}
-				for _, entry := range *slotStateDict {
-					sk, keyOk := entry.Key.(types.String)
-					if !keyOk {
-						return fmt.Errorf("BUILD requires string slot state keys")
-					}
-					err := instSa.PySetAttr(sk.String(), entry.Value)
-					if err != nil {
-						return err
-					}
+				err := settable.PySetAttr(key.String(), val)
+				if err != nil {
+					return err
 				}
-		*/
+			}
+		}
 	}
 
 	return nil

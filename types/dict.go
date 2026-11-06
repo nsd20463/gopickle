@@ -5,6 +5,7 @@
 package types
 
 import (
+	"iter"
 	"strings"
 )
 
@@ -16,7 +17,8 @@ type DictSetter interface {
 	Object
 }
 
-// Dict represents a Python "dict" (builtin type).
+// Dict represents a Python "dict" (builtin type) stored as successive
+// pairs of key, value.
 type Dict []Object
 
 var _ DictSetter = &Dict{}
@@ -43,6 +45,19 @@ func (d *Dict) SetMany(kv []Object) {
 		return
 	}
 	*d = append(*d, kv...)
+}
+
+// Range generates an iterator.
+//
+//	for key, val := range d.Range() { ...
+func (d *Dict) Range() iter.Seq2[Object, Object] {
+	return func(yield func(Object, Object) bool) {
+		for i := 0; i+1 < len(*d); i += 2 {
+			if !yield((*d)[i], (*d)[i+1]) {
+				return
+			}
+		}
+	}
 }
 
 func (d *Dict) JSON(b *strings.Builder) {
