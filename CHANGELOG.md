@@ -6,10 +6,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-06
+### Changed
+- Restore support for PyDictSettable and PyAttrSettable (should some custom type
+  use it)
+### Fixed
+- Fixing mixing OrderedDict attributes into the JSON dict output. This is
+  possibly a breaking change if you depended on the old behavior.
+
 ## [0.3.4] - 2026-11-05
 ### Changed
 - Support Nan and Inf
 - Support pickle v0 unicode strings
+### Fixed
 - Fix JSON encoding of byte arrays
 
 ## [0.3.3] - 2026-11-05

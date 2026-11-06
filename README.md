@@ -6,6 +6,20 @@ repo (or more precisely, the nsd20463/gopickle fork of the nlpodyssey repo)
 with the pytorch parts removed, and the output changed from Go objects
 representing python datatypes to JSON text.
 
+Some limitations have to apply when JSON is the output:
+  * a python OrderDict becomes a JSON dictionary, so there is no room in the
+    JSON for extra attributes outside of the dictionary entries, neither
+    from self.__dict__ nor from self.setattr().
+  * python can have internal references (ie. list element is the list itself)
+    but JSON cannot.
+
+And some assumptions to improve performance:
+  * pickled dictionaries and sets don't contain duplicate keys. We aren't
+    going to spent space and time double checking something python already
+    should have checked.
+
+And, as with unpickling in python, don't unpickle data from strangers.
+
 ----------------------------------------------------------------------------
 
 # README from parent gopickle repo:
