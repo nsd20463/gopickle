@@ -48,3 +48,22 @@ func TestByteArray(t *testing.T) {
 		t.Errorf("unexpected JSON value (%T) % x (%q) -> JSON %s", obj, obj, obj, b.String())
 	}
 }
+
+func TestIntDictKeys(t *testing.T) {
+	in, _ := hex.DecodeString("80049554000000000000007d94284b018c036f6e65944740000000000000008c0874776f2e7a65726f944740091eb851eb851f4740091eb851eb851f477ff00000000000008c03496e6694477ff8000000000000477ff8000000000000752e") // pickle.dumps({1:"one",2.0:"two.zero",3.14:3.14,math.inf:"Inf",math.nan:math.nan}).hex()
+
+	u := NewUnpickler(in)
+	obj, err := u.Load()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	var b strings.Builder
+	obj.JSON(&b)
+	t.Logf("(%T) %v -> JSON %s", obj, obj, b.String())
+
+	if b.String() != `{"1":"one","2":"two.zero","3.14":3.14,"+Inf":"Inf","NaN":"NaN"}` {
+		t.Errorf("unexpected JSON value (%T) % x (%v) -> JSON %s", obj, obj, obj, b.String())
+	}
+}
