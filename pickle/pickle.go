@@ -750,7 +750,6 @@ func decode_raw_unicode_escaped(in []byte) ([]byte, error) {
 			return out, fmt.Errorf(`unknown escape code \%q in raw-unicode-escaped %q`, string(c), inin)
 		}
 	}
-	println(guess, len(out))
 	return out, nil
 }
 
