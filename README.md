@@ -1,119 +1,37 @@
-# GoPickle
+# GoPickle2JSON
 
 GoPickle is a Go library for loading Python's data serialized with `pickle`
-and PyTorch module files.
+and converting it to JSON. This code is derived from the nlpodyssey/gopickle
+repo (or more precisely, the nsd20463/gopickle fork of the nlpodyssey repo)
+with the pytorch parts removed, and the output changed from Go objects
+representing python datatypes to JSON text.
+
+Some limitations have to apply when JSON is the output:
+  * a python OrderDict becomes a JSON dictionary, so there is no room in the
+    JSON for extra attributes outside of the dictionary entries, neither
+    from self.__dict__ nor from self.setattr().
+  * python can have internal references (ie. list element is the list itself)
+    but JSON cannot.
+  * no GenericObject is used for unknown picked object classes. If your pickled
+    data contains classes outside of the supported classes, you need to handle
+    then with a custom Unpickler.FindClass function, and implement the class's
+    PyNew() and the instance's JSON() methods.
+
+And some assumptions to improve performance:
+  * pickled dictionaries and sets don't contain duplicate keys. We aren't
+    going to spent space and time double checking something python already
+    should have checked.
+
+And, as with unpickling in python, don't unpickle data from strangers.
+
+----------------------------------------------------------------------------
+
+# README from parent gopickle repo:
 
 The `pickle` sub-package provides the core functionality for loading data
 serialized with Python `pickle` module, from a file, string, or byte sequence.
 All _pickle_ protocols from 0 to 5 are supported.
 
-The `pytorch` sub-package implements types and functions for loading
-PyTorch module files. Both the _modern_ zip-compressed format and the 
-_legacy_ non-tar format are supported. Legacy tar-compressed
-files and TorchScript archives are _not_ supported.
-
-## Project Status and Contributions
-
-This project is currently in **alpha** development stage. While we provide
-better documentation, tests, and functionalities, above all we'd like to
-battle-test this library with real data and models. This would tremendously
-help us find tricky bugs, add more built-in types, or change the
-library API to make it easier to use.
-
-The simplest and most useful and way to contribute is to try this library
-yourself and give us your feedback: report bugs, suggest improvements,
-or just tell us your opinion.
-And of course, if you feel like it, please go on with your own pull
-requests! We can discuss any issue and try to find the best
-solution for it together.
-
-## Usage
-
-### Pickle
-
-Simple usage:
-
-```go
-import "github.com/nlpodyssey/gopickle/pickle"
-
-// ...
-
-// from file
-foo, err := pickle.Load("foo.p") 
-
-// from string
-stringDump := "I42\n."
-bar, err := pickle.Loads(stringDump)
-
-// ...
-```
-
-Advanced/custom usage:
-
-```go
-import "github.com/nlpodyssey/gopickle/pickle"
-
-var r io.Reader
-
-// ...
-
-u := pickle.NewUnpickler(r)
-
-// Handle custom classes
-u.FindClass = func(module, name string) (interface{}, error) {
-    if module == "foo" && name == "Bar" {
-        return myFooBarClass, nil
-    }
-    return nil, fmt.Errorf("class not found :(")
-}
-
-// Resolve objects by persistent ID
-u.PersistentLoad = func(persistentId interface{}) (interface{}, error) {
-    obj := doSomethingWithPersistentId(persistentId)
-    return obj, nil
-}
-
-// Handle custom pickle extensions
-u.GetExtension = func(code int) (interface{}, error) {
-    obj := doSomethingToResolveExtension(code)
-    return obj, nil
-}
-
-// Handle Out-of-band Buffers
-// https://docs.python.org/3/library/pickle.html#out-of-band-buffers
-u.NextBuffer = func() (interface{}, error) {
-    buf := getMyNextBuffer()
-    return buf, nil
-}
-
-// Low-level function to handle pickle protocol 5 READONLY_BUFFER opcode.
-// By default it is completely ignored (sort of no-op); here you have the
-// ability to manipulate objects as you need.
-u.MakeReadOnly = func(obj interface{}) (interface{}, error) {
-    newObj := myReadOnlyTransform(obj)
-    return newObj, nil
-}
-
-data, err := u.Load()
-
-// ...
-```
-
-### PyTorch
-
-The library currently provides a high-level function for loading a module file:
-
-```go
-import "github.com/nlpodyssey/gopickle/pytorch"
-
-// ...
-
-myModel, err := pytorch.Load("module.pt")
-
-// ...
-```
-
-More features will be provided in the future. 
 
 ## How it works
 
@@ -165,25 +83,9 @@ interfaces to be implemented on an object only where strictly necessary.
 The virtual machine closely follows the original implementation
 from Python 3.8 - see the [`Unpickler` class](https://github.com/python/cpython/blob/3.8/Lib/pickle.py#L1134). 
 
-### PyTorch
-
-[PyTorch](https://pytorch.org/) machine learning framework allows you to save
-and load Python objects which include (or _are_) [Tensors](https://pytorch.org/docs/stable/tensors.html)
-or other framework-specific elements. Tensors data are handled by the more
-primitive [Storage](https://pytorch.org/docs/stable/storage.html) classes, which
-are efficiently serialized as raw sequences of bytes. All the rest is dumped
-using `pickle`. When serializing, the programmer can choose any available pickle
-protocol, and whether to use zip compression. 
-
-The package `pytorch` implements loading functionalities for data
-files serialized with PyTorch (called _modules_). The Go implementation
-strictly follows the original Python (and C++) [code](https://github.com/pytorch/pytorch/blob/master/torch/serialization.py#L486).
-The `pickle` and `types` packages are used to read some parts of a given file.
-Other specific types are implemented in the `pytorch` module itself, most
-notably to reflect the content of PyTorch Tensor and Storage objects. 
 
 ## License
 
 GoPickle is licensed under a BSD-style license.
-See [LICENSE](https://github.com/nlpodyssey/gopickle/blob/master/LICENSE) for
+See [LICENSE](https://github.com/mistsys/gopickle2json/blob/master/LICENSE) for
 the full license text.

@@ -5,66 +5,87 @@
 package types
 
 import (
-	"fmt"
-	"reflect"
+	"iter"
+	"strings"
 )
 
 // DictSetter is implemented by any value that exhibits a dict-like behaviour,
 // allowing arbitrary key/value pairs to be set.
 type DictSetter interface {
-	Set(key, value interface{})
+	Set(key, value Object)
+	SetMany([]Object) // pairs of key, value
+	Object
 }
 
-// Dict represents a Python "dict" (builtin type).
-//
-// It is implemented as a slice, instead of a map, because in Go not
-// all types can be map's keys (e.g. slices).
-type Dict []DictEntry
-
-type DictEntry struct {
-	Key   interface{}
-	Value interface{}
-}
+// Dict represents a Python "dict" (builtin type) stored as successive
+// pairs of key, value.
+type Dict []Object
 
 var _ DictSetter = &Dict{}
 
-// NewDict makes and returns a new empty Dict.
-func NewDict() *Dict {
-	d := make(Dict, 0, 4)
-	return &d
+// NewDict makes and returns a new empty Dict with room for n items
+func NewDict(n int, ram *[]Object) *Dict {
+	d := (*Dict)(ram)
+	if n > 0 {
+		*d = make(Dict, 0, 2*n)
+	}
+	return d
 }
 
 // Set sets into the Dict the given key/value pair.
-func (d *Dict) Set(key, value interface{}) {
-	*d = append(*d, DictEntry{
-		Key:   key,
-		Value: value,
-	})
+func (d *Dict) Set(key, value Object) {
+	*d = append(*d, key, value)
 }
 
-// Get returns the value associated with the given key (if any), and whether
-// the key is present or not.
-func (d *Dict) Get(key interface{}) (interface{}, bool) {
-	for _, entry := range *d {
-		if reflect.DeepEqual(entry.Key, key) {
-			return entry.Value, true
+func (d *Dict) SetMany(kv []Object) {
+	// it's very common to have a single SetMany call which loads all items into an empty dict
+	// so treat that as a special case not requiring any copies
+	if len(*d) == 0 {
+		*d = kv
+		return
+	}
+	*d = append(*d, kv...)
+}
+
+// Range generates an iterator.
+//
+//	for key, val := range d.Range() { ...
+func (d *Dict) Range() iter.Seq2[Object, Object] {
+	return func(yield func(Object, Object) bool) {
+		for i := 0; i+1 < len(*d); i += 2 {
+			if !yield((*d)[i], (*d)[i+1]) {
+				return
+			}
 		}
 	}
-	return nil, false
 }
 
-// MustGet returns the value associated with the given key, if if it exists,
-// otherwise it panics.
-func (d *Dict) MustGet(key interface{}) interface{} {
-	value, ok := d.Get(key)
-	if !ok {
-		panic(fmt.Errorf("key not found in Dict: %#v", key))
+func (d *Dict) JSON(b *strings.Builder) {
+	b.WriteByte('{')
+	for i, x := range *d {
+		quoted := false
+		if i&1 == 0 {
+			if i != 0 {
+				b.WriteByte(',')
+			}
+			switch xx := x.(type) {
+			case Int, *Long:
+				// JSON requires quotes around non-string keys
+				b.WriteByte('"')
+				quoted = true
+			case Float:
+				if !xx.NeedsQuotes() {
+					b.WriteByte('"')
+					quoted = true
+				} // else it's going to be quoted already
+			}
+		} else {
+			b.WriteByte(':')
+		}
+		x.JSON(b)
+		if quoted {
+			b.WriteByte('"')
+		}
 	}
-	return value
-}
-
-// Len returns the length of the Dict, that is, the amount of key/value pairs
-// contained by the Dict.
-func (d *Dict) Len() int {
-	return len(*d)
+	b.WriteByte('}')
 }

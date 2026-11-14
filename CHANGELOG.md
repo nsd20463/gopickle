@@ -6,6 +6,75 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.2 - 2026-11-13
+### Fixed
+- fixed stray println in decode_raw_unicode_escaped(), leftover from debugging it.
+
+## [0.4.1] - 2026-11-06
+### Changed
+- unknown pickled classes result in an error, not a panic.
+### Removed
+- types.GenericObjectClass and GenericObject are removed. They aren't useable
+  (all calls end in panic) so nothing should have been using them to begin with.
+
+
+## [0.4.0] - 2026-11-06
+### Changed
+- Restore support for PyDictSettable and PyAttrSettable (should some custom type
+  use it)
+### Fixed
+- Fixing mixing OrderedDict attributes into the JSON dict output. This is
+  possibly a breaking change if you depended on the old behavior.
+
+## [0.3.4] - 2026-11-05
+### Changed
+- Support Nan and Inf
+- Support pickle v0 unicode strings
+### Fixed
+- Fix JSON encoding of byte arrays
+
+## [0.3.3] - 2026-11-05
+### Changed
+- Backport of fix for malformed, odd-length dict unpickling.
+- Support numeric dict keys (Thanks @Dadadah)
+
+## [0.3.2] - 2022-11-01
+### Changed
+- Improved performance further with a few memory pools at hotspots.
+
+## [0.3.1] - 2022-11-01
+### Changed
+- Better handling of escaped strings.
+
+## [0.3.0] - 2022-11-01
+### Changed
+- Lots of performance enhancements. This is roughly 4x faster and uses 1/8th the
+  number of memory allocations than 0.2.2 does (and about 1/3 the memory).
+- API now takes []byte as argument, not io.Reader. This slice must not be
+  mutated until operations (like calling JSON method) on the returned types.Object
+  are completed.
+
+## [0.2.2] - 2022-10-31
+### Fixed
+- Python tuples become JSON lists.
+
+## [0.2.1] - 2022-10-27
+### Fixed
+- Added types.None, which was missing.
+
+## [0.2.0] - 2022-10-27
+### Changed
+- Make every python object implement types.Object, and types.Object has a JSON()
+  method which emits the equivalent JSON. This necessitated wrapping all the
+  types which were bare Go, like bool, int, string, into named types.
+  In the end, I don't emit JSON directly. I still construct the intermediate
+  python objects, and then ask them to emit. This creates lots of garbage to gc,
+  so I might re-explore directly emitted the JSON as as unpickle.
+
+### forked - 2022-10-27
+- forked from nlpodyssey/gopickle (or really, a child of that, nsd20463/gopickle
+  b/c I wanted the improvements there)
+
 ## [0.1.0] - 2021-01-06
 ### Added
 - More and better documentation

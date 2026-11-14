@@ -4,6 +4,8 @@
 
 package types
 
+import "strings"
+
 // Callable is implemented by any value that can be directly called to get a
 // new value.
 //
@@ -13,7 +15,7 @@ package types
 type Callable interface {
 	// Call mimics a direct invocation on a Python value, such as a function
 	// or class (constructor).
-	Call(args ...interface{}) (interface{}, error)
+	Call(args ...Object) (Object, error)
 }
 
 // PyNewable is implemented by any value that has a Python-like
@@ -25,7 +27,7 @@ type PyNewable interface {
 	// provided by classes.
 	//
 	// See: https://docs.python.org/3/reference/datamodel.html#object.__new__
-	PyNew(args ...interface{}) (interface{}, error)
+	PyNew(args ...Object) (Object, error)
 }
 
 // PyStateSettable is implemented by any value that has a Python-like
@@ -34,7 +36,7 @@ type PyStateSettable interface {
 	// PySetState mimics Python invocation of the "__setstate__" method.
 	//
 	// See: https://docs.python.org/3/library/pickle.html#object.__setstate__
-	PySetState(state interface{}) error
+	PySetState(state Object) error
 }
 
 // PyDictSettable is implemented by any value that can store dictionary-like
@@ -45,7 +47,7 @@ type PyDictSettable interface {
 	//"__dict__" attribute.
 	//
 	// See: https://docs.python.org/3/library/stdtypes.html#object.__dict__
-	PyDictSet(key, value interface{}) error
+	PyDictSet(key, value Object) error
 }
 
 // PyAttrSettable is implemented by any value on which an existing or new
@@ -61,5 +63,10 @@ type PyAttrSettable interface {
 	// on the "object" itself.
 	//
 	// See: https://docs.python.org/3/library/functions.html#setattr
-	PySetAttr(key string, value interface{}) error
+	PySetAttr(key string, value Object) error
+}
+
+// Object is a generic json-converted python object.
+type Object interface {
+	JSON(*strings.Builder)
 }
